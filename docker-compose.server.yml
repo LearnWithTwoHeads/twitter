@@ -1,0 +1,45 @@
+version: "3.7"
+services:
+  mysql:
+    image: mysql:8.0.32
+    networks:
+      - twitter_network
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: true
+      MYSQL_PASSWORD: password
+      MYSQL_USER: user
+      MYSQL_DATABASE: twitter
+  migrations:
+    build:
+      context: ./db_migrations
+      args: 
+        - "MYSQL_CONNECTION_STRING=user:password@tcp(mysql:3306)/twitter?multiStatements=true&parseTime=true"
+    networks:
+      - twitter_network
+    restart: on-failure
+    environment:
+      WAIT_HOSTS: mysql:3306
+  redis:
+    image: redis:7.2.4-alpine
+    networks:
+      - twitter_network
+  backend:
+    build:
+      context: ./server
+    networks:
+      - twitter_network
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    ports:
+    - "8080:8080"
+    environment:
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+      MYSQL_DATABASE: twitter
+      MYSQL_HOST: mysql
+      REDIS_CONNECTION_STRING: redis://redis:6379
+      WAIT_HOSTS: mysql:3306, redis:6379
+
+networks:
+  twitter_network:

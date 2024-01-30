@@ -1,0 +1,5 @@
+# Redis
+dump.rdb
+
+# Node
+node_modules/
